@@ -857,7 +857,7 @@ async function xrpc(method,body){
 async function saveToPDS(){
   const json=serializeDoc();
   try{
-    const r=await xrpc('ai.gftd.apps.mangaka.saveDocument',{docId:doc.docId,name:doc.name,document:json,convoId:activeProjectId||doc.convoId||''});
+    const r=await xrpc('app.etzhayyim.mangaka.saveDocument',{docId:doc.docId,name:doc.name,document:json,convoId:activeProjectId||doc.convoId||''});
     if(r.error)console.warn('pds save:',r.error);
     else status.textContent='Saved'+(activeProjectId?' (Project)':sessionToken?' (PDS)':' (local)');
   }catch(e){console.warn('pds save:',e)}
@@ -866,7 +866,7 @@ async function saveToPDS(){
 /** Load document from PDS by docId (authenticated). */
 async function loadFromPDS(docId){
   try{
-    const r=await xrpc('ai.gftd.apps.mangaka.loadDocument',{docId});
+    const r=await xrpc('app.etzhayyim.mangaka.loadDocument',{docId});
     if(r.error){console.warn('pds load:',r.error);return false}
     const docStr=r.document||r.value_b64;
     if(docStr&&deserializeDoc(docStr)){needsRedraw=true;status.textContent='Loaded from PDS';return true}
@@ -876,7 +876,7 @@ async function loadFromPDS(docId){
 
 /** List saved documents from PDS (authenticated). */
 async function listFromPDS(){
-  try{return(await xrpc('ai.gftd.apps.mangaka.listDocuments',{limit:20})).items||[]}
+  try{return(await xrpc('app.etzhayyim.mangaka.listDocuments',{limit:20})).items||[]}
   catch(e){console.warn('pds list:',e);return[]}
 }
 
@@ -912,7 +912,7 @@ function loadFromFile(){
 /* Restore: localStorage on init (PDS load is async, deferred). Skip if AT URI deep-link present — resolveAtUri() handles loading. */
 if(!location.pathname.startsWith('/at/')){try{const sv=localStorage.getItem(STORE_KEY);if(sv)deserializeDoc(sv)}catch(e){}}
 
-/* === Project Management (ai.gftd.projectors) === */
+/* === Project Management (app.etzhayyim.projectors) === */
 const projSelect=document.getElementById('projSelect');
 let projects=[];
 const PROJ_CACHE_KEY='mangaka-projects-${nanoid}';
@@ -927,7 +927,7 @@ async function loadProjects(){
   try{const cached=localStorage.getItem(PROJ_CACHE_KEY);if(cached){const cp=JSON.parse(cached);if(Array.isArray(cp)&&cp.length)projects=cp;renderProjectSelect()}}catch(e){}
   /* Then try graph query */
   try{
-    const r=await xrpc('ai.gftd.apps.mangaka.listProjects',{limit:50});
+    const r=await xrpc('app.etzhayyim.mangaka.listProjects',{limit:50});
     const items=(r.items||[]).map(p=>{
       if(typeof p==='string'){try{p=JSON.parse(p)}catch(e){}}
       if(p.value_b64){try{const v=JSON.parse(p.value_b64);Object.assign(p,v)}catch(e){}}
@@ -942,7 +942,7 @@ async function loadProjects(){
   }catch(e){
     /* Fallback: try PDS convo project list directly */
     try{
-      const r2=await fetch(XRPC_BASE+'ai.gftd.projector.listProjectConvos',{
+      const r2=await fetch(XRPC_BASE+'app.etzhayyim.projector.listProjectConvos',{
         method:'POST',headers:authHeaders(),body:JSON.stringify({limit:50})
       });
       if(r2.ok){const d=await r2.json();const items=(d.items||d.projects||[]).map(p=>{
@@ -980,7 +980,7 @@ projSelect.onchange=async()=>{
   /* Try to load saved canvas document first */
   let loaded=false;
   try{
-    const r=await xrpc('ai.gftd.apps.mangaka.listDocuments',{limit:1,convoId:val});
+    const r=await xrpc('app.etzhayyim.mangaka.listDocuments',{limit:1,convoId:val});
     const items=r.items||[];
     if(items.length>0){
       const d=items[0];
@@ -993,8 +993,8 @@ projSelect.onchange=async()=>{
     const proj=projects.find(p=>(p.convoId||p.rkey||p.vertex_id||p.id)===val);
     const projName=proj?.name||proj?.display_name||proj?.displayName||val;
     const [wR,cR]=await Promise.allSettled([
-      xrpc('ai.gftd.apps.mangaka.listWorks',{limit:20}),
-      xrpc('ai.gftd.apps.mangaka.listCharacters',{limit:50}),
+      xrpc('app.etzhayyim.mangaka.listWorks',{limit:20}),
+      xrpc('app.etzhayyim.mangaka.listCharacters',{limit:50}),
     ]);
     const works=(wR.status==='fulfilled'?wR.value.items:[])||[];
     const chars=(cR.status==='fulfilled'?cR.value.items:[])||[];
@@ -1045,7 +1045,7 @@ document.getElementById('projNewOk').onclick=async()=>{
   const btn=document.getElementById('projNewOk');
   btn.textContent='Creating...';btn.disabled=true;
   try{
-    const r=await xrpc('ai.gftd.apps.mangaka.createProject',{name:nm,description:'Manga project: '+nm});
+    const r=await xrpc('app.etzhayyim.mangaka.createProject',{name:nm,description:'Manga project: '+nm});
     if(r.convoId){
       activeProjectId=r.convoId;
       doc.convoId=r.convoId;
@@ -1117,7 +1117,7 @@ function buildProjectTocDoc(project){
     /* Episode link nodes under the arc group */
     for(const d of epDocs){
       const linkNid=nid();
-      const href='/at/'+appHost+'/ai.gftd.apps.mangaka.document/'+d.docId;
+      const href='/at/'+appHost+'/app.etzhayyim.mangaka.document/'+d.docId;
       const subtitle=(d.pages||0)+'p'+(d.images?' '+d.images+'img':'');
       nodes.push({id:linkNid,type:'link',visible:true,data:{
         type:'link',_nid:linkNid,_visible:true,_parent:groupNid,
@@ -1144,7 +1144,7 @@ async function resolveAtUri(){
   try{
     if(isProject){
       /* Project AT URI → load project metadata → build TOC document */
-      const r=await xrpc('ai.gftd.apps.mangaka.loadProject',{projectId:at.rkey});
+      const r=await xrpc('app.etzhayyim.mangaka.loadProject',{projectId:at.rkey});
       if(r.error){status.textContent='Project not found: '+at.rkey;return false}
       const tocDoc=buildProjectTocDoc(r);
       if(safeDeserialize(JSON.stringify(tocDoc))){
@@ -1153,7 +1153,7 @@ async function resolveAtUri(){
       }
     } else {
       /* Document AT URI → load document directly */
-      const r=await xrpc('ai.gftd.apps.mangaka.loadDocument',{docId:at.rkey});
+      const r=await xrpc('app.etzhayyim.mangaka.loadDocument',{docId:at.rkey});
       const docStr=r.document||r.value_b64;
       if(docStr&&safeDeserialize(docStr)){
         status.textContent='Loaded: '+at.rkey;
@@ -1199,7 +1199,7 @@ async function loadMembers(){
   members=[{did:'did:web:mng4k4x1.etzhayyim.com',displayName:'Mangaka AI',role:'admin',isAI:true},...DEFAULT_ACTORS];
   if(activeProjectId){
     try{
-      const r=await xrpc('ai.gftd.apps.mangaka.getMembers',{convoId:activeProjectId});
+      const r=await xrpc('app.etzhayyim.mangaka.getMembers',{convoId:activeProjectId});
       if(r.members&&r.members.length){
         const ids=new Set(r.members.map(m=>m.did));
         const extra=DEFAULT_ACTORS.filter(a=>!ids.has(a.did));
@@ -1262,7 +1262,7 @@ document.getElementById('mpAddBtn').onclick=async()=>{
   if(!did)return;
   const name=prompt('Display name:',did.split(':').pop()||did);
   try{
-    await xrpc('ai.gftd.apps.mangaka.addMember',{convoId:activeProjectId,memberDid:did,displayName:name});
+    await xrpc('app.etzhayyim.mangaka.addMember',{convoId:activeProjectId,memberDid:did,displayName:name});
     members.push({did,displayName:name,role:'member',isAI:did.includes('.etzhayyim.com'),style:''});
     renderMembers();addChat('system','Member added: '+(name||did));
   }catch(e){console.warn('addMember:',e)}
@@ -1347,7 +1347,7 @@ async function sendChat(){
   if(isStoryRequest&&director){
     addChat('Storyboard Director','Analyzing story and creating panel layout...');
     try{
-      const r=await xrpc('ai.gftd.apps.mangaka.storyboard',{story:txt+buildContextStr()});
+      const r=await xrpc('app.etzhayyim.mangaka.storyboard',{story:txt+buildContextStr()});
       if(r.panels&&r.panels.length>0){
         /* Create panels + prompts from storyboard */
         const rect=getYoushiInnerRect();
@@ -1379,7 +1379,7 @@ async function sendChat(){
   /* General chat → LLM response (with context nodes) */
   try{
     const ctxStr=buildContextStr();
-    const r=await xrpc('ai.gftd.apps.mangaka.generateImage',{prompt:txt+ctxStr,style:'manga'});
+    const r=await xrpc('app.etzhayyim.mangaka.generateImage',{prompt:txt+ctxStr,style:'manga'});
     if(r.description)addChat('Mangaka AI',r.description);
     else addChat('Mangaka AI',r.error||'Ready to draw!');
   }catch(e){addChat('system','Error: '+e.message)}
@@ -1393,7 +1393,7 @@ async function generateForPanel(oi,style,artistName){
   const promptText=panelPrompt?.prompt||chatMessages.filter(m=>m.sender==='You').slice(-1)[0]?.text||'manga scene';
   status.textContent='AI generating...';
   try{
-    const r=await xrpc('ai.gftd.apps.mangaka.generateImage',{prompt:promptText,style});
+    const r=await xrpc('app.etzhayyim.mangaka.generateImage',{prompt:promptText,style});
     if(r.image){
       /* Create AI image as a child node of the panel */
       const aiNode={type:'ai-image',_nid:nid(),_visible:true,_parent:o._nid,_agent:style,
@@ -1432,15 +1432,19 @@ document.body.appendChild(imgLayer);
 /** Render AI-generated images/descriptions as overlays (from ai-image/ai-desc nodes + panel._genImage compat). */
 function renderPanelImages(){
   imgLayer.innerHTML='';
+  /* Pre-compute sc for paper-relative (mm-unit) overlays. */
+  const _y=YOUSHI[activeYoushi];
+  const _sc=(_y&&_y.draw)?Math.min(C.width*0.9/_y.wMM,C.height*0.9/_y.hMM):1;
+  const _us=(o)=>o._unit==='mm'?_sc:1;
   for(const o of overlays){
     if(!isNodeVisible(o._nid))continue;
     /* Render ai-image nodes */
     if(o.type==='ai-image'&&(o._genImage||o._genImageUrl)){
-      const r=C.getBoundingClientRect();
-      const x1=(Math.min(o.x1,o.x2)*zoom+panX)/dpr+r.left;
-      const y1=(Math.min(o.y1,o.y2)*zoom+panY)/dpr+r.top;
-      const x2=(Math.max(o.x1,o.x2)*zoom+panX)/dpr+r.left;
-      const y2=(Math.max(o.y1,o.y2)*zoom+panY)/dpr+r.top;
+      const r=C.getBoundingClientRect();const s=_us(o);
+      const x1=(Math.min(o.x1,o.x2)*s*zoom+panX)/dpr+r.left;
+      const y1=(Math.min(o.y1,o.y2)*s*zoom+panY)/dpr+r.top;
+      const x2=(Math.max(o.x1,o.x2)*s*zoom+panX)/dpr+r.left;
+      const y2=(Math.max(o.y1,o.y2)*s*zoom+panY)/dpr+r.top;
       const el=document.createElement('img');
       el.src=o._genImageUrl||('data:image/jpeg;base64,'+o._genImage);
       el.style.cssText='position:absolute;left:'+x1+'px;top:'+y1+'px;width:'+(x2-x1)+'px;height:'+(y2-y1)+'px;object-fit:cover;pointer-events:none;opacity:0.85';
@@ -1454,11 +1458,11 @@ function renderPanelImages(){
     }
     /* Render ai-desc nodes */
     if(o.type==='ai-desc'&&o._genDesc){
-      const r=C.getBoundingClientRect();
-      const x1=(Math.min(o.x1,o.x2)*zoom+panX)/dpr+r.left;
-      const y1=(Math.min(o.y1,o.y2)*zoom+panY)/dpr+r.top;
-      const x2=(Math.max(o.x1,o.x2)*zoom+panX)/dpr+r.left;
-      const y2=(Math.max(o.y1,o.y2)*zoom+panY)/dpr+r.top;
+      const r=C.getBoundingClientRect();const s=_us(o);
+      const x1=(Math.min(o.x1,o.x2)*s*zoom+panX)/dpr+r.left;
+      const y1=(Math.min(o.y1,o.y2)*s*zoom+panY)/dpr+r.top;
+      const x2=(Math.max(o.x1,o.x2)*s*zoom+panX)/dpr+r.left;
+      const y2=(Math.max(o.y1,o.y2)*s*zoom+panY)/dpr+r.top;
       const el=document.createElement('div');
       el.style.cssText='position:absolute;left:'+x1+'px;top:'+y1+'px;width:'+(x2-x1)+'px;height:'+(y2-y1)+'px;pointer-events:none;overflow:hidden;padding:6px;font-size:9px;color:#555;line-height:1.3;background:rgba(255,255,255,0.8)';
       el.textContent=o._genDesc;
@@ -1473,10 +1477,10 @@ function renderPanelImages(){
     if(o.type==='prompt'&&o._parent){
       const parent=overlays.find(p=>p._nid===o._parent);
       if(parent&&parent.x1!=null){
-        const r=C.getBoundingClientRect();
-        const x1=(Math.min(parent.x1,parent.x2)*zoom+panX)/dpr+r.left;
-        const y1=(Math.min(parent.y1,parent.y2)*zoom+panY)/dpr+r.top;
-        const x2=(Math.max(parent.x1,parent.x2)*zoom+panX)/dpr+r.left;
+        const r=C.getBoundingClientRect();const s=_us(parent);
+        const x1=(Math.min(parent.x1,parent.x2)*s*zoom+panX)/dpr+r.left;
+        const y1=(Math.min(parent.y1,parent.y2)*s*zoom+panY)/dpr+r.top;
+        const x2=(Math.max(parent.x1,parent.x2)*s*zoom+panX)/dpr+r.left;
         const el=document.createElement('div');
         el.style.cssText='position:absolute;left:'+x1+'px;top:'+(y1-1)+'px;width:'+(x2-x1)+'px;padding:2px 4px;font-size:8px;color:#c0a020;background:rgba(255,250,220,0.9);border-bottom:1px solid #e0d080;pointer-events:none;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:600;z-index:6';
         el.textContent='P: '+o.prompt;
@@ -1485,11 +1489,11 @@ function renderPanelImages(){
     }
     /* Backward compat: panel-level _genImage/_genImageUrl (legacy) */
     if(o.type==='panel'&&(o._genImage||o._genImageUrl)&&!overlays.some(c=>c.type==='ai-image'&&c._parent===o._nid)){
-      const r=C.getBoundingClientRect();
-      const x1=(Math.min(o.x1,o.x2)*zoom+panX)/dpr+r.left;
-      const y1=(Math.min(o.y1,o.y2)*zoom+panY)/dpr+r.top;
-      const x2=(Math.max(o.x1,o.x2)*zoom+panX)/dpr+r.left;
-      const y2=(Math.max(o.y1,o.y2)*zoom+panY)/dpr+r.top;
+      const r=C.getBoundingClientRect();const s=_us(o);
+      const x1=(Math.min(o.x1,o.x2)*s*zoom+panX)/dpr+r.left;
+      const y1=(Math.min(o.y1,o.y2)*s*zoom+panY)/dpr+r.top;
+      const x2=(Math.max(o.x1,o.x2)*s*zoom+panX)/dpr+r.left;
+      const y2=(Math.max(o.y1,o.y2)*s*zoom+panY)/dpr+r.top;
       const el=document.createElement('img');
       el.src=o._genImageUrl||('data:image/jpeg;base64,'+o._genImage);
       el.style.cssText='position:absolute;left:'+x1+'px;top:'+y1+'px;width:'+(x2-x1)+'px;height:'+(y2-y1)+'px;object-fit:cover;pointer-events:none;opacity:0.85';
@@ -1507,7 +1511,7 @@ async function generatePanelImage(panelIdx){
   status.textContent='Generating image...';
   try{
     const w=Math.abs(o.x2-o.x1)/dpr;const h=Math.abs(o.y2-o.y1)/dpr;
-    const r=await xrpc('ai.gftd.apps.mangaka.generateImage',{
+    const r=await xrpc('app.etzhayyim.mangaka.generateImage',{
       prompt:promptText,style:'manga',
       width:Math.min(Math.round(w)||512,1024),
       height:Math.min(Math.round(h)||512,1024),
@@ -1651,7 +1655,8 @@ function tessellateYoushi(out,cw,ch){
   function line(x1,y1,x2,y2,r,g,b,a,wmm){
     const px1=x1*sc,py1=y1*sc,px2=x2*sc,py2=y2*sc;
     const dx=px2-px1,dy=py2-py1,len=Math.sqrt(dx*dx+dy*dy)||1;
-    const hw=wmm*sc*0.5;
+    /* Minimum half-width = 0.5 device px so mm-based lines stay visible at any sc */
+    const hw=Math.max(wmm*sc*0.5, 0.5);
     const nx=-dy/len*hw,ny=dx/len*hw;
     out.push((px1+nx)/cw,(py1+ny)/ch,r,g,b,a,(px1-nx)/cw,(py1-ny)/ch,r,g,b,a,(px2+nx)/cw,(py2+ny)/ch,r,g,b,a);
     out.push((px1-nx)/cw,(py1-ny)/ch,r,g,b,a,(px2-nx)/cw,(py2-ny)/ch,r,g,b,a,(px2+nx)/cw,(py2+ny)/ch,r,g,b,a);
@@ -1890,7 +1895,14 @@ function tessellateFukidashi(out,x1,y1,x2,y2,cw,ch){
 
 /* === GENKO SDK: Panel (コマ) rendering === */
 function tessellatePanel(out,o,cw,ch){
-  const x1=Math.min(o.x1,o.x2),y1=Math.min(o.y1,o.y2),x2=Math.max(o.x1,o.x2),y2=Math.max(o.y1,o.y2);
+  /* Support mm-unit coords (paper-relative): scale by sc when o._unit === 'mm'.
+     Legacy docs without _unit keep canvas-internal-pixel coords. */
+  let s=1;
+  if(o._unit==='mm'){
+    const y=YOUSHI[activeYoushi];
+    if(y&&y.draw)s=Math.min(cw*0.9/y.wMM,ch*0.9/y.hMM);
+  }
+  const x1=Math.min(o.x1,o.x2)*s,y1=Math.min(o.y1,o.y2)*s,x2=Math.max(o.x1,o.x2)*s,y2=Math.max(o.y1,o.y2)*s;
   const bw=(o.borderW||0.8)*dpr;
   /* White fill */
   out.push(x1/cw,y1/ch,1,1,1,1, x2/cw,y1/ch,1,1,1,1, x2/cw,y2/ch,1,1,1,1);

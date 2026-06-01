@@ -10,6 +10,7 @@ export {
   PartPicker,
   VoicePanel,
   EmotionBars,
+  IsekaiCanvas,
 } from './components/index.js';
 
 // Builders (re-exported for convenience)
@@ -27,7 +28,6 @@ export {
 export type {
   DualEngineState,
   KamiWasmExports,
-  ThreeVrmHandle,
   EngineCapabilities,
   EngineMemoryBudget,
 } from './types/engine.js';
@@ -43,6 +43,22 @@ export { genkoEmbedHTML } from './genko/index.js';
 
 // Trackpad (Apple trackpad + mouse gesture unification)
 export { kamiTrackpadHTML } from './trackpad/index.js';
+
+// Gsplat (3D Gaussian Splatting preview/QC bridge for maps.etzhayyim.com)
+export {
+  loadGsplatAsset,
+  listGsplatAssets,
+  pushToWasm,
+  removeFromWasm,
+  bakeGsplatAsset,
+} from './gsplat/index.js';
+export type {
+  GsplatAssetMeta,
+  GetGsplatAssetResponse,
+  ListGsplatAssetsResponse,
+  GsplatWasmExports,
+  FetchedGsplatAsset,
+} from './gsplat/index.js';
 
 // Manufacturing (3D factory cell, CAM output, robot/material-handling planning)
 export {
@@ -102,3 +118,42 @@ export type {
   Document,
   DocumentTheme,
 } from './document/index.js';
+
+// WebVR (headless choice-based incident-response engine; no built-in renderer)
+// Use `import { ... } from '@etzhayyim/kami-engine-sdk/webvr'` for tree-shaking
+export type {
+  IncidentScenario,
+  IncidentNode,
+  IncidentChoice,
+  IncidentKpi,
+  IncidentState,
+  IncidentDecisionLog,
+  LocationKind,
+  Stage,
+  Severity,
+  NodeEffectKind,
+  SceneDescriptor,
+  IncidentBridge,
+  CreateIncidentVrEngineOpts,
+  IncidentVrEngine,
+} from './webvr/index.js';
+export {
+  ZERO_KPI,
+  applyKpiDelta,
+  INCIDENT_GRAPH,
+  applySelection,
+  initialState,
+  createIncidentVrEngine,
+  createCineBridge,
+  createMockCineBridge,
+} from './webvr/index.js';
+export type {
+  CineBridge,
+  CreateCineBridgeOpts,
+  CineSceneInput,
+  CineSceneArtifacts,
+  CineWorldArtifact,
+  CineUsdArtifact,
+  CineGeomArtifact,
+  CineTemporalArtifact,
+} from './webvr/index.js';

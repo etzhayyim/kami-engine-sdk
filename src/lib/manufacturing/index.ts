@@ -738,9 +738,9 @@ export function createRoboticsWorkProcessPlan(input: {
     dependencies: dependencyGraph.dependencies,
     missingPrerequisites: dependencyGraph.missingPrerequisites,
     bpmnProcesses: [
-      "00-contracts/bpmn/ai/gftd/robotics/planRoboticsBusinessProcess.bpmn",
-      "00-contracts/bpmn/ai/gftd/robotics/executeRoboticsWork.bpmn",
-      "00-contracts/bpmn/ai/gftd/robotics/planRoboticsTransportAndSales.bpmn",
+      "etzhayyim-root/00-contracts/bpmn/ai/gftd/robotics/planRoboticsBusinessProcess.bpmn",
+      "etzhayyim-root/00-contracts/bpmn/ai/gftd/robotics/executeRoboticsWork.bpmn",
+      "etzhayyim-root/00-contracts/bpmn/ai/gftd/robotics/planRoboticsTransportAndSales.bpmn",
     ],
     mcpTools: [
       "robotics.process.catalog",

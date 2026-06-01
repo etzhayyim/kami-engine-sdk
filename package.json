@@ -1,25 +1,26 @@
 {
   "name": "@etzhayyim/kami-engine-sdk",
   "version": "0.1.0",
-  "description": "KAMI Engine SDK: Svelte 5 VRM character components, headless builders, Genko manga editor, trackpad embeds, and manufacturing planning helpers.",
+  "description": "KAMI Engine SDK: Svelte 5 VRM viewer (wgpu via WASM, three.js-free since 2026-05-26), headless builders, 3D Gaussian Splat preview bridge, headless incident-response engine, Genko manga editor, trackpad embeds, and manufacturing planning helpers.",
   "type": "module",
   "license": "Apache-2.0",
-  "homepage": "https://github.com/etzhayyim/root",
+  "homepage": "https://github.com/etzhayyim/kami-engine-sdk#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/etzhayyim/root.git"
+    "url": "git+https://github.com/etzhayyim/kami-engine-sdk.git"
   },
   "bugs": {
-    "url": "https://github.com/etzhayyim/rootissues"
+    "url": "https://github.com/etzhayyim/kami-engine-sdk/issues"
   },
   "keywords": [
     "kami",
     "svelte",
     "vrm",
-    "three",
+    "wgpu",
     "manga",
     "genko",
-    "manufacturing"
+    "manufacturing",
+    "gsplat"
   ],
   "exports": {
     ".": {
@@ -51,7 +52,7 @@
       "default": "./dist/genko/stores/doc.svelte.js"
     },
     "./genko/components": {
-      "types": "./dist/genko/components/index.d.ts",
+      "types": "./dist/genko/components/NodeTree.svelte.d.ts",
       "svelte": "./dist/genko/components/NodeTree.svelte",
       "default": "./dist/genko/components/NodeTree.svelte"
     },
@@ -66,25 +67,42 @@
     "./manufacturing": {
       "types": "./dist/manufacturing/index.d.ts",
       "default": "./dist/manufacturing/index.js"
+    },
+    "./gsplat": {
+      "types": "./dist/gsplat/index.d.ts",
+      "default": "./dist/gsplat/index.js"
+    },
+    "./webvr": {
+      "types": "./dist/webvr/index.d.ts",
+      "svelte": "./dist/webvr/index.js",
+      "default": "./dist/webvr/index.js"
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "CHARTER-RIDER.md",
+    "CHANGELOG.md",
+    "NOTICE",
+    "SECURITY.md"
   ],
   "scripts": {
     "build": "svelte-package -i src/lib",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
   },
   "peerDependencies": {
     "svelte": "^5.0.0",
-    "@pixiv/three-vrm": ">=3.0.0",
-    "three": ">=0.160.0"
-  },
-  "peerDependenciesMeta": {
-    "@pixiv/three-vrm": { "optional": true },
-    "three": { "optional": true }
+    "@langchain/langgraph": ">=1.0.0",
+    "@langchain/core": ">=1.0.0"
   },
   "devDependencies": {
     "@sveltejs/package": "^2.5.7",
