@@ -76,6 +76,11 @@
       "types": "./dist/webvr/index.d.ts",
       "svelte": "./dist/webvr/index.js",
       "default": "./dist/webvr/index.js"
+    },
+    "./teleoperation": {
+      "types": "./dist/teleoperation/index.d.ts",
+      "svelte": "./dist/teleoperation/index.js",
+      "default": "./dist/teleoperation/index.js"
     }
   },
   "files": [

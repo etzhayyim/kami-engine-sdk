@@ -103,6 +103,32 @@ export type {
   RoboticsWorkProcessPlan,
 } from './manufacturing/index.js';
 
+// Teleoperation (PS5/Switch/Xbox/Steam controller → safety-gated command → tazuna frame)
+// Use `import { ... } from '@etzhayyim/kami-engine-sdk/teleoperation'` for tree-shaking
+export {
+  createTeleopController,
+  mapArm,
+  applyRadialDeadzone,
+  applyScalarDeadzone,
+  detectProfile,
+  profileLabel,
+  glyph,
+  TeleopPanel,
+} from './teleoperation/index.js';
+export type {
+  TeleopController,
+  TeleopControllerOptions,
+  TeleopTick,
+  TeleopCommand,
+  TeleopFrame,
+  ControllerProfile,
+  Pad,
+  Axis,
+  CommandKind,
+  SafeState,
+  GamepadSnapshot,
+} from './teleoperation/index.js';
+
 // Document (structured document model + KAMI scene bridge)
 // Use `import { ... } from '@etzhayyim/kami-engine-sdk/document'` for tree-shaking
 export type {
