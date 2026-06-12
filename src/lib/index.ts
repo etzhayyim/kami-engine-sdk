@@ -11,6 +11,7 @@ export {
   VoicePanel,
   EmotionBars,
   IsekaiCanvas,
+  CallPanel,
 } from './components/index.js';
 
 // Builders (re-exported for convenience)
@@ -157,3 +158,21 @@ export type {
   CineGeomArtifact,
   CineTemporalArtifact,
 } from './webvr/index.js';
+
+// Call (real-media 1:1 WebRTC over the kotoba realtime signaling relay)
+// Use `import { ... } from '@etzhayyim/kami-engine-sdk/call'` for tree-shaking
+export {
+  createKotobaCall, buildConnectUrl, NSID_SYNC_CONNECT,
+  mintTurnCredential, verifyTurnCredential, buildIceServers,
+} from './call/index.js';
+export type { TurnCredential } from './call/index.js';
+export type {
+  KotobaCall,
+  KotobaCallOptions,
+  KotobaCallEvents,
+  PeerConnectionState,
+  CallStats,
+  ClientMsg,
+  ServerMsg,
+  SignalPayload,
+} from './call/index.js';

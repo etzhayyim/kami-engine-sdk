@@ -4,6 +4,37 @@ All notable changes to `@etzhayyim/kami-engine-sdk` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — 2026-06-09 real-media calling
+
+Adds `@etzhayyim/kami-engine-sdk/call` — real-media 1:1 WebRTC voice/video over
+the kotoba realtime signaling relay (`kotoba-rt`). The browser owns the media
+plane (capture, codecs, SRTP, ICE/DTLS); the SDK orchestrates `RTCPeerConnection`
+and shuttles SDP/ICE through the authority's existing `Signal` relay. Zero new
+runtime dependencies; headless and SSR-safe (RTCPeerConnection / WebSocket /
+capture are all injectable). Backing TURN design: `kotoba/docs/ADR-turn-relay.md`.
+
+### Added
+
+- **`createKotobaCall(options)`** — headless 1:1 (mesh-ready) call engine:
+  - WHATWG perfect-negotiation (polite peer = lower player id) over a CBOR wire
+    codec byte-compatible with `kotoba-rt`'s `protocol.rs`.
+  - `dial` / `hangup` / `replaceTrack` (device / screen-share hot-swap, no
+    renegotiation, mute-state preserving) / `setMicEnabled` / `setCameraEnabled`
+    / `peers` / `getStats` / `monitorStats` / `on` / `close`.
+  - Robustness: one ICE restart on `failed`, transient `disconnected` tolerated,
+    peer teardown on presence-leave, configurable connect-establishment timeout,
+    signaling-WS auto-reconnect with exponential backoff, API-misuse guards
+    (self-dial, dial-before-start), idempotent `start()`.
+- **`CallPanel.svelte`** — drop-in UI: local/remote video, mute, camera, screen
+  share, hang up, and a live per-peer quality readout (RTT / jitter / loss).
+- **TURN credential helpers** — `mintTurnCredential` (control-plane HMAC-SHA1
+  ephemeral creds, coturn `use-auth-secret` scheme), `verifyTurnCredential`,
+  `buildIceServers`. Byte-compatible with the Rust `kotoba-turn` relay (shared
+  RFC 2202 test vector).
+- New subpath export **`./call`**; `CallPanel`, `createKotobaCall`,
+  `mintTurnCredential`, `verifyTurnCredential`, `buildIceServers` also re-exported
+  from the package root.
+
 ## [Unreleased] — 2026-05-26 cutover
 
 The 2026-05-26 cutover is a **breaking change** that retires three.js from every layer of the SDK. Consumers that depended on the three.js peer-dep surface (the `./spark` 3DGS demos, the `mountIncidentScene` WebVR renderer, the `ThreeVrmHandle` type) need to migrate before upgrading.

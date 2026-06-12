@@ -8,3 +8,4 @@ export { default as VoicePanel } from './VoicePanel.svelte';
 export { default as EmotionBars } from './EmotionBars.svelte';
 export { default as ChatPanel } from './ChatPanel.svelte';
 export { default as IsekaiCanvas } from './IsekaiCanvas.svelte';
+export { default as CallPanel } from './CallPanel.svelte';

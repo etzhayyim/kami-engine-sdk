@@ -76,6 +76,10 @@
       "types": "./dist/webvr/index.d.ts",
       "svelte": "./dist/webvr/index.js",
       "default": "./dist/webvr/index.js"
+    },
+    "./call": {
+      "types": "./dist/call/index.d.ts",
+      "default": "./dist/call/index.js"
     }
   },
   "files": [
