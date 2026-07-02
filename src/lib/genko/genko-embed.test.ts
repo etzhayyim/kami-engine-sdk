@@ -112,6 +112,26 @@ describe('genkoEmbedHTML — link node type', () => {
   });
 });
 
+describe('genkoEmbedHTML — genko cljc SSoT delegation (ADR-2607020200)', () => {
+  const html = genkoEmbedHTML('Mangaka', 'mng4k4x1');
+
+  it('inlines the KamiGenko bundle (kami.mangaka.genko cljc compiled to JS)', () => {
+    // the compiled bundle installs globalThis.KamiGenko on load
+    expect(html).toContain('globalThis.KamiGenko');
+    expect(html.length).toBeGreaterThan(120000); // bundle is inlined (self-contained)
+  });
+
+  it('replayOplog delegates to the cljc SSoT (inline JS reimplementation removed)', () => {
+    expect(html).toContain('globalThis.KamiGenko.replayOplog(ops');
+    // the old ~80-line inline event-sourcing loop is gone
+    expect(html).not.toContain('let rStrokes=[],rOverlays=[],rRedoStack=[]');
+  });
+
+  it('deserializeDoc delegates parse+normalize to KamiGenko.readDoc', () => {
+    expect(html).toContain('globalThis.KamiGenko.readDoc(json)');
+  });
+});
+
 describe('genkoEmbedHTML — document persistence', () => {
   const html = genkoEmbedHTML('Mangaka', 'mng4k4x1');
 

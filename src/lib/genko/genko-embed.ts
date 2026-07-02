@@ -17,6 +17,8 @@ import { kamiTrackpadHTML } from '../trackpad/trackpad-embed.js';
  * @param nanoid - Unique nanoid identifier for the app instance
  * @returns Complete HTML string for the manga editor
  */
+import { KAMI_GENKO_BUNDLE } from './kami-genko-bundle.js';
+
 export function genkoEmbedHTML(name: string, nanoid: string): string {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>${name}</title>
@@ -252,6 +254,9 @@ canvas#draw{display:block;cursor:default;position:fixed;top:36px;left:var(--nt-w
 </div>
 <canvas id="draw"></canvas>
 <div class="status" id="status">WebGPU | ${nanoid}</div>
+<!-- kami.mangaka.genko (cljc SSoT) → globalThis.KamiGenko。document model / event-sourcing を
+     inline JS の自前実装ではなく cljc に委譲する (ADR-2607020200)。生成物: kami-genko-bundle.ts -->
+<script>${KAMI_GENKO_BUNDLE}</script>
 <script>
 'use strict';
 const C=document.getElementById('draw');
@@ -707,8 +712,10 @@ const XRPC_BASE=location.origin+'/xrpc/';
 if(!doc.docId)doc.docId='doc-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 function serializeDoc(){saveCurrentPage();return JSON.stringify(doc)}
 function deserializeDoc(json){
-  try{const d=JSON.parse(typeof json==='string'?json:JSON.stringify(json));
-    if(d&&d.pages&&d.pages.length){doc=d;loadPage(doc.activePageIdx||0);return true}}
+  /* parse + 正規化(pages 検証 / activePageIdx clamp / _nid・_visible 同期) は
+     kami.mangaka.genko (cljc SSoT) の readDoc に委譲 (ADR-2607020200)。null=不正。*/
+  try{const d=globalThis.KamiGenko.readDoc(json);
+    if(d){doc=d;loadPage(doc.activePageIdx||0);return true}}
   catch(e){console.warn('load failed',e)}return false;
 }
 
@@ -729,86 +736,12 @@ function recordOp(type,data){
   }
 }
 
-/** Replay all operations from oplog onto a fresh document. Returns reconstructed doc JSON. */
+/** Replay all operations from oplog onto a fresh document. Returns reconstructed doc.
+ *  Document event-sourcing は kami.mangaka.genko (cljc SSoT) に一本化した — 以前ここに
+ *  JS で再実装していた ~80 行の replay ロジックは globalThis.KamiGenko.replayOplog に
+ *  委譲する (ADR-2607020200)。live-edit の tree/stroke 操作と WebGPU 描画は host のまま。*/
 function replayOplog(ops){
-  /* Reset to empty doc */
-  const freshDoc={name:doc.name,docId:doc.docId,pages:[{id:pid(),name:'Page 1',youshi:{id:nid(),type:'b4manga',visible:true},nodes:[]}],activePageIdx:0};
-  let rStrokes=[],rOverlays=[],rRedoStack=[];
-  function rActivePage(){return freshDoc.pages[freshDoc.activePageIdx]}
-  function rSavePage(){
-    const pg=rActivePage();pg.nodes=[];
-    for(const s of rStrokes)pg.nodes.push({id:s._nid||'',type:'stroke',visible:s._visible!==false,data:s});
-    for(const o of rOverlays)pg.nodes.push({id:o._nid||'',type:o.type,visible:o._visible!==false,data:o});
-  }
-  function rLoadPage(idx){
-    rSavePage();freshDoc.activePageIdx=idx;
-    const pg=rActivePage();rStrokes=[];rOverlays=[];
-    for(const n of pg.nodes){n.data._nid=n.id;n.data._visible=n.visible;
-      if(n.type==='stroke')rStrokes.push(n.data);else rOverlays.push(n.data)}
-    rRedoStack=[];
-  }
-
-  for(const op of ops){
-    const d=op.data;
-    switch(op.type){
-      case 'stroke':
-        if(d.stroke){d.stroke._nid=d.stroke._nid||nid();d.stroke._visible=true;rStrokes.push(d.stroke);rRedoStack=[]}
-        break;
-      case 'addOverlay':
-        if(d.overlay){d.overlay._nid=d.overlay._nid||nid();d.overlay._visible=true;rOverlays.push(d.overlay)}
-        break;
-      case 'deleteNode':{
-        const dnid=d.nid;
-        rStrokes.forEach(s=>{if(s._parent===dnid)s._parent=''});
-        rOverlays.forEach(o=>{if(o._parent===dnid)o._parent=''});
-        const si=rStrokes.findIndex(s=>s._nid===dnid);
-        if(si>=0)rStrokes.splice(si,1);
-        else{const oi=rOverlays.findIndex(o=>o._nid===dnid);if(oi>=0)rOverlays.splice(oi,1)}
-        break;}
-      case 'moveNode':
-        if(d.nid&&d.dx!=null){
-          const s=rStrokes.find(s=>s._nid===d.nid);
-          if(s){for(const p of s.points){p.x+=d.dx;p.y+=d.dy}}
-          else{const o=rOverlays.find(o=>o._nid===d.nid);
-            if(o){if(o.x1!=null){o.x1+=d.dx;o.y1+=d.dy;o.x2+=d.dx;o.y2+=d.dy}if(o.x!=null){o.x+=d.dx;o.y+=d.dy}}}
-        }
-        break;
-      case 'reparent':
-        if(d.childNid!=null){const n=rStrokes.find(s=>s._nid===d.childNid)||rOverlays.find(o=>o._nid===d.childNid);
-          if(n)n._parent=d.parentNid||''}
-        break;
-      case 'toggleVis':{
-        const n=rStrokes.find(s=>s._nid===d.nid)||rOverlays.find(o=>o._nid===d.nid);
-        if(n)n._visible=!(n._visible!==false);
-        break;}
-      case 'youshiVis':
-        rActivePage().youshi.visible=!rActivePage().youshi.visible;break;
-      case 'youshiType':
-        if(d.type)rActivePage().youshi.type=d.type;break;
-      case 'addPage':
-        rSavePage();
-        freshDoc.pages.push({id:d.pageId||pid(),name:d.name||'Page',youshi:{id:nid(),type:'b4manga',visible:true},nodes:[]});
-        rLoadPage(freshDoc.pages.length-1);break;
-      case 'deletePage':
-        if(d.pageIdx!=null&&freshDoc.pages.length>1){
-          freshDoc.pages.splice(d.pageIdx,1);
-          if(freshDoc.activePageIdx>=freshDoc.pages.length)freshDoc.activePageIdx=freshDoc.pages.length-1;
-          rLoadPage(freshDoc.activePageIdx)}
-        break;
-      case 'switchPage':
-        if(d.pageIdx!=null)rLoadPage(d.pageIdx);break;
-      case 'undo':
-        if(rStrokes.length)rRedoStack.push(rStrokes.pop());break;
-      case 'redo':
-        if(rRedoStack.length)rStrokes.push(rRedoStack.pop());break;
-      case 'addGroup':
-        if(d.overlay)rOverlays.push(d.overlay);break;
-      case 'panelPreset':
-        if(d.panels){for(const p of d.panels)rOverlays.push(p)}break;
-    }
-  }
-  rSavePage();
-  return freshDoc;
+  return globalThis.KamiGenko.replayOplog(ops,{name:doc.name,docId:doc.docId});
 }
 
 /** Export oplog as downloadable JSON. */
