@@ -391,16 +391,12 @@ function setParent(childNid,parentNid){
   const n=findByNid(childNid);if(n){n._parent=parentNid;n._layer=parentNid}
 }
 
-/** Check if making childNid a child of parentNid would create a cycle. */
+/** Check if making childNid a child of parentNid would create a cycle.
+ *  cljc SSoT (globalThis.KamiGenko) に委譲 (ADR-2607020300, 移植#2)。純判定なので
+ *  currentNodes() スナップショット越しに委譲できる (findByNid は live mutation を返すため
+ *  host のまま; reorderNode の splice/setParent も host)。 */
 function wouldCycle(childNid,parentNid){
-  if(!parentNid)return false;
-  let cur=parentNid;const visited=new Set();
-  while(cur){
-    if(cur===childNid)return true;
-    if(visited.has(cur))return false;visited.add(cur);
-    const n=findByNid(cur);cur=n?n._parent||'':'';
-  }
-  return false;
+  return globalThis.KamiGenko.wouldCycle(currentNodes(),childNid,parentNid);
 }
 
 /** Reorder: move node at fromGi to position toGi within same parent group. */
