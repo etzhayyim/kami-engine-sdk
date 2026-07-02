@@ -130,6 +130,13 @@ describe('genkoEmbedHTML — genko cljc SSoT delegation (ADR-2607020200)', () =>
   it('deserializeDoc delegates parse+normalize to KamiGenko.readDoc', () => {
     expect(html).toContain('globalThis.KamiGenko.readDoc(json)');
   });
+
+  it('allNodes delegates node-tree derivation to KamiGenko (増分#1)', () => {
+    expect(html).toContain('function currentNodes()');
+    expect(html).toContain('globalThis.KamiGenko.allNodes(currentNodes())');
+    // the old ~20-line inline allNodes (naming/hasChildren loop) is gone
+    expect(html).not.toContain("nm='Fukidashi'");
+  });
 });
 
 describe('genkoEmbedHTML — document persistence', () => {

@@ -363,29 +363,21 @@ function agentColor(agent){return AGENT_COLORS[agent]||AGENT_COLORS['']}
 function agentInitials(agent){return(agent||'').slice(0,2).toUpperCase()||''}
 
 /** Get all nodes as a unified flat list. Each has: gi, kind, nid, _parent, visible, name, ref, hasChildren, agent. */
+/** Materialize live strokes+overlays into the serialized node-wrapper form
+ *  ({id,type,visible,data}) — the shape kami.mangaka.genko (KamiGenko) operates on.
+ *  saveCurrentPage と同じ順序 (strokes then overlays)、live payload を data に持つ。*/
+function currentNodes(){
+  const ns=[];
+  for(const s of strokes)ns.push({id:s._nid||'',type:'stroke',visible:s._visible!==false,data:s});
+  for(const o of overlays)ns.push({id:o._nid||'',type:o.type,visible:o._visible!==false,data:o});
+  return ns;
+}
+/** Flat node list with derived fields (gi/nid/par/vis/kind/idx/nm/ref/agent/hasChildren).
+ *  命名・hasChildren・kind/idx の派生ロジックは kami.mangaka.genko (cljc SSoT) に委譲した
+ *  — 以前の ~20 行の JS 実装は KamiGenko.allNodes に一本化 (ADR-2607020200)。ref は
+ *  raw payload (display 読取のみ)。tree 描画/選択/可視トグルの DOM は host のまま。*/
 function allNodes(){
-  const out=[];
-  let panelCount=0;
-  strokes.forEach((s,i)=>out.push({gi:i,kind:'s',idx:i,nid:s._nid||'',par:s._parent||'',vis:s._visible!==false,
-    nm:'Stroke '+(i+1),ref:s,hasChildren:false,agent:s._agent||''}));
-  overlays.forEach((o,i)=>{
-    const gi=strokes.length+i;
-    let nm=o.type;
-    if(o.type==='panel'){panelCount++;nm='Panel '+(o.panelName||panelCount)}
-    else if(o.type==='ai-image')nm='AI Image'+(o._genPrompt?' ('+o._genPrompt.slice(0,12)+')':'');
-    else if(o.type==='ai-desc')nm='AI Desc'+(o._genPrompt?' ('+o._genPrompt.slice(0,12)+')':'');
-    else if(o.type==='prompt')nm='Prompt: '+(o.prompt||'').slice(0,16);
-    else if(o.type==='text')nm='Text: '+(o.text||'').slice(0,8);
-    else if(o.type==='link')nm=o.linkTitle||o.text||'Link';
-    else if(o.type==='group')nm=o.groupName||'Group';
-    else if(o.type==='tone')nm='Tone';
-    else if(o.type==='fukidashi')nm='Fukidashi';
-    out.push({gi,kind:'o',idx:i,nid:o._nid||'',par:o._parent||o._layer||'',vis:o._visible!==false,nm,ref:o,hasChildren:false,agent:o._agent||''});
-  });
-  /* Mark nodes that have children */
-  const nids=new Set(out.map(n=>n.nid));
-  out.forEach(n=>{if(n.par&&nids.has(n.par)){const p=out.find(x=>x.nid===n.par);if(p)p.hasChildren=true}});
-  return out;
+  return globalThis.KamiGenko.allNodes(currentNodes());
 }
 
 /** Find node by nid in strokes+overlays. */
