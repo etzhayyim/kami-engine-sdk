@@ -137,6 +137,12 @@ describe('genkoEmbedHTML — genko cljc SSoT delegation (ADR-2607020200)', () =>
     // the old ~20-line inline allNodes (naming/hasChildren loop) is gone
     expect(html).not.toContain("nm='Fukidashi'");
   });
+
+  it('wouldCycle delegates the cycle check to KamiGenko (増分#2)', () => {
+    expect(html).toContain('globalThis.KamiGenko.wouldCycle(currentNodes()');
+    // old inline parent-chain traversal is gone
+    expect(html).not.toContain("const n=findByNid(cur);cur=n?n._parent");
+  });
 });
 
 describe('genkoEmbedHTML — document persistence', () => {
